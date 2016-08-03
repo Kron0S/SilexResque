@@ -11,6 +11,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Resque_Event;
 use Resque_Job;
 use Resque_Worker;
+use Resque_Log;
 
 class ResqueWorkerCommand extends Command
 {
@@ -46,18 +47,17 @@ EOT
         $queues = explode(',', $input->getArgument('queues'));
         $interval = $input->getOption('interval');
 
-        $logLevel = Resque_Worker::LOG_NORMAL;
+        $logLevel = false;
         if ($input->getOption('verbose')) {
-            $logLevel = Resque_Worker::LOG_VERBOSE;
+            $logLevel = true;
         }
-        if ($input->getOption('quiet')) {
-            $logLevel = Resque_Worker::LOG_NONE;
-        }
+		
+		$logger = new Resque_Log($logLevel);
 
         Resque_Event::listen('beforePerform', array($this, 'beforePerform'));
 
         $worker = $this->createWorker($queues);
-        $worker->logLevel = $logLevel;
+		$worker->setLogger($logger);
         // $worker->setLogger(array($output, 'writeln'));
         $output->writeln('*** Starting worker '.$worker);
         $worker->work($interval);
